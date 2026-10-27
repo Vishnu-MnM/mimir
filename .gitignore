@@ -1,0 +1,9 @@
+/mimir
+/bin/
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+coverage.out
+.env
+.DS_Store
