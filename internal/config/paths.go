@@ -1,3 +1,5 @@
+// Package config resolves mimir's per user directories using XDG base directory spec,
+// loads, validates and applies the defaults to TOML config file.
 package config
 
 import (
@@ -17,7 +19,7 @@ type Paths struct {
 
 // ErrNoHome is returned when a directory has no usable XDG variable and
 // and HOME can't be used as a fallback.
-var ErrNoHome = errors.New("Home is not set to an absolute path.")
+var ErrNoHome = errors.New("home is not set to an absolute path")
 
 // ResolvePaths works out mimir's directories using the XDG base directory spec.
 // getenv is passed in (usually os.GetEnv) so tests never touch the real environment.
