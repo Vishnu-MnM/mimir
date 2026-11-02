@@ -13,8 +13,8 @@ const appName = "mimir"
 // Paths hold the per-user directories mimir needs to read and write to.
 type Paths struct {
 	Config string // config.toml, keybindings, user themes
-	Data string // SQLite Database
-	State string // logs, undo history, persisted pane widths.
+	Data   string // SQLite Database
+	State  string // logs, undo history, persisted pane widths.
 }
 
 // ErrNoHome is returned when a directory has no usable XDG variable and
@@ -24,7 +24,7 @@ var ErrNoHome = errors.New("home is not set to an absolute path")
 // ResolvePaths works out mimir's directories using the XDG base directory spec.
 // getenv is passed in (usually os.GetEnv) so tests never touch the real environment.
 func ResolvePaths(getenv func(string) string) (Paths, error) {
-	home := getenv ("HOME")
+	home := getenv("HOME")
 
 	config, err := xdgDir(getenv, home, "XDG_CONFIG_HOME", ".config")
 	if err != nil {

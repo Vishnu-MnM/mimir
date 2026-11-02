@@ -1,0 +1,19 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - revive
+    - errorlint
+    - misspell
+    - unconvert
+    - gocritic
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/Vishnu-MnM/mimir   # groups my own imports separately.
