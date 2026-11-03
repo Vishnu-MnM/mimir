@@ -1,7 +1,7 @@
 # mimir: TUI Todo App Design Doc (pre-code)
 
 ## Context
-mimir is a learning project: a feature-rich, robust terminal todo app built test-first (TDD). The goal is to learn how a language, its libraries, and the architecture fit together. This doc settles features, architecture, edge cases and language **before** any code. The project directory (`/Users/hermes/Projects/mimir`) is empty. Go, Rust (cargo), Python 3.14 (uv) and Node are installed.
+mimir is a learning project: a feature-rich, robust terminal todo app built test-first (TDD). The goal is to learn how a language, its libraries, and the architecture fit together. This doc settles features, architecture, edge cases and language **before** any code. Development happens on two machines (macOS and Linux) from the same GitHub repo (`github.com/Vishnu-MnM/mimir`, public). The repo is the only shared state between them, so decisions and progress are recorded in §7 of this doc.
 
 ---
 
@@ -147,7 +147,7 @@ Calendar pane (toggled with `c` or by clicking ◫). It takes the detail column'
 
 ## 2. Architecture (language-agnostic, ports & adapters)
 
-Go module `github.com/<you>/mimir`; everything lives under `internal/` except `cmd/`.
+Go module `github.com/Vishnu-MnM/mimir`; everything lives under `internal/` except `cmd/`.
 ```
 cmd/mimir/      single binary: no args → TUI, subcommands → CLI (add, ls, done, sync, notify, import, export)
 internal/
@@ -226,3 +226,38 @@ config/         TOML load, defaults, validation, XDG paths
 - `go test ./... -race` and `golangci-lint run` are green at each milestone; every feature starts with a failing test. Coverage concentrates on domain, sync and ics.
 - Manual: run the TUI under Catppuccin, a light theme, `NO_COLOR=1`, and `TERM=dumb`; resize to 40×10.
 - Import real Google/Outlook `.ics` exports. Do a sync round-trip against test calendars, editing on both sides to force a conflict.
+
+## 7. Progress & decisions log
+This section is updated as work lands, so any machine or session can pick up where the last one stopped.
+
+### Milestone 0 status
+- [x] `git init`, `go mod init` (module `github.com/Vishnu-MnM/mimir`, `go 1.27.3`)
+- [x] `config.ResolvePaths` (XDG paths), table-tested
+- [x] Makefile, golangci-lint v2 config, GitHub Actions CI
+- [x] `CLAUDE.md` working agreement added; §7 is the handoff between machines
+- [ ] **In progress:** `Paths.EnsureDirs()`. The red tests are on branch `ensure-dirs`
+  (`internal/config/paths_test.go`). Next step: check out that branch and implement
+  `EnsureDirs` in `paths.go` (validate `filepath.IsAbs` on all dirs first, then
+  `os.MkdirAll(dir, 0o700)`, wrapping errors with the path). Merge to `main` once `make check` is green.
+- [ ] slog logging to a file in `Paths.State` (inject an `io.Writer` so it can be tested)
+- Then Milestone 1 (domain).
+
+### Decisions
+**Config paths (`internal/config`)**
+- `ResolvePaths(getenv func(string) string) (Paths, error)`: `getenv` is injected (usually `os.Getenv`), so tests never touch the real environment.
+- Each directory is resolved independently: an absolute `$XDG_*_HOME` value gives `<that>/mimir`; otherwise `$HOME/<default>/mimir`. Relative or empty XDG values are ignored, as the spec requires.
+- `HOME` must be absolute, and it's only required when some directory falls back to it. On failure the function returns the zero `Paths` plus an error wrapping the sentinel `ErrNoHome`.
+- XDG paths are used on macOS too (`~/.config/mimir`), not `~/Library/Application Support`, so `os.UserConfigDir()` is deliberately not used. `adrg/xdg` was considered and skipped: hand-writing it is more instructive and it's only ~40 lines.
+- `EnsureDirs` creates missing directories (and missing parents) with mode `0700`, as the XDG spec says. It leaves directories that already exist, and their modes, untouched. It rejects relative or empty paths before creating anything, and fails if a file sits where a directory should be.
+
+**Tooling**
+- `make check` runs lint and then test. The other targets are `test` (`go test -race ./...`), `cover`, `lint`, `fmt` (`golangci-lint fmt`), `tidy` and `build` (`go build ./...` until `cmd/mimir` exists).
+- golangci-lint v2: `default: standard`, plus revive, errorlint, misspell, unconvert and gocritic. The formatters are gofumpt and goimports (local prefix: the module path).
+- CI (`.github/workflows/ci.yml`): lint runs on ubuntu-latest; `make test` runs on ubuntu-latest and macos-latest with `fail-fast: false`. The Go version comes from `go.mod`, and the golangci-lint version is pinned to match local installs. The repo is public, so Actions minutes are free.
+
+**Conventions**
+- Tests live next to the code in `_test.go` files in the same directory. Use `package x_test` for black-box tests where that's practical. Fixtures go in `testdata/`. End-to-end tests of the binary may get a top-level directory later.
+- Every package gets a `// Package x ...` doc comment.
+- Format with gofumpt (format-on-save, or `make fmt`); never align code by hand.
+- Use `t.TempDir()` for filesystem tests, and `t.Helper()` in assertion helpers.
+- Name a parameter `_`, or leave it unnamed, when it's unused (revive's `unused-parameter`).
