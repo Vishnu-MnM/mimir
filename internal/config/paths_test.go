@@ -98,7 +98,7 @@ func TestEnsureDirs(t *testing.T) {
 			t.Fatalf("EnsureDirs() err = %v", err)
 		}
 		for _, dir := range dirsOf(p) {
-			assertDirmode (t, dir, 0o755)
+			assertDirmode(t, dir, 0o755)
 		}
 	})
 }
@@ -109,7 +109,7 @@ func TestEnsureDirsErrors(t *testing.T) {
 		setup func(t *testing.T) Paths
 	}{
 		{
-			name: "zero-value Paths",
+			name:  "zero-value Paths",
 			setup: func(t *testing.T) Paths { return Paths{} },
 		},
 		{
@@ -171,5 +171,5 @@ func assertDirmode(t *testing.T, dir string, want fs.FileMode) {
 	}
 	if got := info.Mode().Perm(); got != want {
 		t.Errorf("%s mode = %#o, want %#o", dir, got, want)
-	} 
+	}
 }
