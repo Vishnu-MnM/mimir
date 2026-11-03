@@ -18,7 +18,7 @@ jobs:
           go-version-file: go.mod
       - uses: golangci/golangci-lint-action@v9.3.0
         with:
-          version: vX.Y.Z # set to what `golangci-lint --version prints locally`
+          version: v2.15.0 # keep in sync with `golangci-lint --version` locally
 
   test:
     strategy:

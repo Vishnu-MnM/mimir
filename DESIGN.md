@@ -237,8 +237,13 @@ This section is updated as work lands, so any machine or session can pick up whe
 - [x] `CLAUDE.md` working agreement added; §7 is the handoff between machines
 - [x] `Paths.EnsureDirs()`: validates every dir with `filepath.IsAbs` before
   creating any, then `os.MkdirAll(dir, 0o700)`; tested with `t.TempDir()`.
-- [ ] **Next:** slog logging to a file in `Paths.State` (inject an `io.Writer`
-  so it can be tested).
+- [ ] **In progress:** slog logging (`internal/logging`).
+  - [x] `logging.New(w io.Writer, level slog.Level) *slog.Logger`: TextHandler,
+    level filter tested with a `bytes.Buffer`.
+  - [ ] `logging.OpenFile(dir string) (*os.File, error)`: the red tests are on
+    `main` (`internal/logging/logging_test.go`), so CI is red until this is done.
+    Next step: open `<dir>/mimir.log` with `O_APPEND|O_CREATE|O_WRONLY`, mode
+    `0600`, wrapping errors as `opening log file: %w`.
 - Then Milestone 1 (domain).
 
 ### Decisions
@@ -251,6 +256,18 @@ This section is updated as work lands, so any machine or session can pick up whe
 - `EnsureDirs` errors are wrapped as `ensuring directories: %w`. The wrapped
   `*fs.PathError` already names the path, so it isn't repeated. No
   `ErrRelativePath` sentinel yet; add one when a caller needs `errors.Is` on it.
+
+**Logging (`internal/logging`)**
+- Logs go to `mimir.log` in `Paths.State`, never stdout/stderr, because the TUI
+  owns the terminal. Follow them with `tail -f`.
+- `TextHandler` (`key=value`, readable and greppable), not JSON.
+- The `*slog.Logger` is passed explicitly to whatever needs it; no
+  `slog.SetDefault`, so tests can capture output and run in parallel.
+- `OpenFile` only opens the file: it appends (never truncates), creates it with
+  mode `0600`, and fails if the directory is missing. Creating directories is
+  `EnsureDirs`' job. Wiring order in `cmd/mimir`: `ResolvePaths` →
+  `EnsureDirs` → `OpenFile` → `New`.
+- Later: a `*slog.LevelVar` so the level can change at runtime (Settings tab).
 
 **Tooling**
 - `make check` runs lint and then test. The other targets are `test` (`go test -race ./...`), `cover`, `lint`, `fmt` (`golangci-lint fmt`), `tidy` and `build` (`go build ./...` until `cmd/mimir` exists).
