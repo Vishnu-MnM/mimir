@@ -235,11 +235,10 @@ This section is updated as work lands, so any machine or session can pick up whe
 - [x] `config.ResolvePaths` (XDG paths), table-tested
 - [x] Makefile, golangci-lint v2 config, GitHub Actions CI
 - [x] `CLAUDE.md` working agreement added; §7 is the handoff between machines
-- [ ] **In progress:** `Paths.EnsureDirs()`. The red tests are on `main`
-  (`internal/config/paths_test.go`), so CI on `main` is red until this is done.
-  Next step: implement `EnsureDirs` in `paths.go` (validate `filepath.IsAbs` on all
-  dirs first, then `os.MkdirAll(dir, 0o700)`, wrapping errors with the path).
-- [ ] slog logging to a file in `Paths.State` (inject an `io.Writer` so it can be tested)
+- [x] `Paths.EnsureDirs()`: validates every dir with `filepath.IsAbs` before
+  creating any, then `os.MkdirAll(dir, 0o700)`; tested with `t.TempDir()`.
+- [ ] **Next:** slog logging to a file in `Paths.State` (inject an `io.Writer`
+  so it can be tested).
 - Then Milestone 1 (domain).
 
 ### Decisions
@@ -249,6 +248,9 @@ This section is updated as work lands, so any machine or session can pick up whe
 - `HOME` must be absolute, and it's only required when some directory falls back to it. On failure the function returns the zero `Paths` plus an error wrapping the sentinel `ErrNoHome`.
 - XDG paths are used on macOS too (`~/.config/mimir`), not `~/Library/Application Support`, so `os.UserConfigDir()` is deliberately not used. `adrg/xdg` was considered and skipped: hand-writing it is more instructive and it's only ~40 lines.
 - `EnsureDirs` creates missing directories (and missing parents) with mode `0700`, as the XDG spec says. It leaves directories that already exist, and their modes, untouched. It rejects relative or empty paths before creating anything, and fails if a file sits where a directory should be.
+- `EnsureDirs` errors are wrapped as `ensuring directories: %w`. The wrapped
+  `*fs.PathError` already names the path, so it isn't repeated. No
+  `ErrRelativePath` sentinel yet; add one when a caller needs `errors.Is` on it.
 
 **Tooling**
 - `make check` runs lint and then test. The other targets are `test` (`go test -race ./...`), `cover`, `lint`, `fmt` (`golangci-lint fmt`), `tidy` and `build` (`go build ./...` until `cmd/mimir` exists).

@@ -11,7 +11,10 @@ import (
 )
 
 const (
-	appName             = "mimir"
+	// appName
+	appName = "mimir"
+	// dirMode is the permission for directories that mimir creates. The XDG
+	// spec requires 0700, because these directories can hold private data.
 	dirMode fs.FileMode = 0o700
 )
 
@@ -22,7 +25,7 @@ type Paths struct {
 	State  string // logs, undo history, persisted pane widths.
 }
 
-// ErrNoHome is returned when a directory has no usable XDG variable and
+// ErrNoHome is returned when a directory has no usable XDG variable
 // and HOME can't be used as a fallback.
 var ErrNoHome = errors.New("home is not set to an absolute path")
 
@@ -47,8 +50,14 @@ func ResolvePaths(getenv func(string) string) (Paths, error) {
 	return Paths{Config: config, Data: data, State: state}, nil
 }
 
+// EnsureDirs creates any missing directories in p, including missing parents,
+// with mode 0700. Existing directories and their modes are left untouched.
+// Every path is checked to be absolute before anything is created.
 func (p Paths) EnsureDirs() error {
 	dirs := p.dirs()
+
+	// Validate everything first, so a bad path never leaves the
+	// filesystem half setup.
 	for _, dir := range dirs {
 		if !filepath.IsAbs(dir) {
 			return fmt.Errorf("ensuring directories: %q is not an absolute path", dir)
@@ -62,12 +71,13 @@ func (p Paths) EnsureDirs() error {
 	return nil
 }
 
+// dirs returns the directories in p in a fixed order.
 func (p Paths) dirs() []string {
 	return []string{p.Config, p.Data, p.State}
 }
 
 // xdgDir returns $<envVar>/mimir if envVar holds an absolute path.
-// Otherwise it falls back to $HOME/<fallback>/mimir.
+// Otherwise, it falls back to $HOME/<fallback>/mimir.
 func xdgDir(getenv func(string) string, home, envVar, fallback string) (string, error) {
 	// The spec says relative values must be ignored. IsAbs("") is false,
 	// so this one check covers both "unset" and "relative"
