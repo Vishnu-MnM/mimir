@@ -235,10 +235,10 @@ This section is updated as work lands, so any machine or session can pick up whe
 - [x] `config.ResolvePaths` (XDG paths), table-tested
 - [x] Makefile, golangci-lint v2 config, GitHub Actions CI
 - [x] `CLAUDE.md` working agreement added; §7 is the handoff between machines
-- [ ] **In progress:** `Paths.EnsureDirs()`. The red tests are on branch `ensure-dirs`
-  (`internal/config/paths_test.go`). Next step: check out that branch and implement
-  `EnsureDirs` in `paths.go` (validate `filepath.IsAbs` on all dirs first, then
-  `os.MkdirAll(dir, 0o700)`, wrapping errors with the path). Merge to `main` once `make check` is green.
+- [ ] **In progress:** `Paths.EnsureDirs()`. The red tests are on `main`
+  (`internal/config/paths_test.go`), so CI on `main` is red until this is done.
+  Next step: implement `EnsureDirs` in `paths.go` (validate `filepath.IsAbs` on all
+  dirs first, then `os.MkdirAll(dir, 0o700)`, wrapping errors with the path).
 - [ ] slog logging to a file in `Paths.State` (inject an `io.Writer` so it can be tested)
 - Then Milestone 1 (domain).
 
