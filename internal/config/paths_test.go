@@ -110,7 +110,7 @@ func TestEnsureDirsErrors(t *testing.T) {
 	}{
 		{
 			name:  "zero-value Paths",
-			setup: func(t *testing.T) Paths { return Paths{} },
+			setup: func(_ *testing.T) Paths { return Paths{} },
 		},
 		{
 			name: "relative path",

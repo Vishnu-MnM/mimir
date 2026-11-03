@@ -5,10 +5,15 @@ package config
 import (
 	"errors"
 	"fmt"
+	"io/fs"
+	"os"
 	"path/filepath"
 )
 
-const appName = "mimir"
+const (
+	appName             = "mimir"
+	dirMode fs.FileMode = 0o700
+)
 
 // Paths hold the per-user directories mimir needs to read and write to.
 type Paths struct {
@@ -40,6 +45,25 @@ func ResolvePaths(getenv func(string) string) (Paths, error) {
 	}
 
 	return Paths{Config: config, Data: data, State: state}, nil
+}
+
+func (p Paths) EnsureDirs() error {
+	dirs := p.dirs()
+	for _, dir := range dirs {
+		if !filepath.IsAbs(dir) {
+			return fmt.Errorf("ensuring directories: %q is not an absolute path", dir)
+		}
+	}
+	for _, dir := range dirs {
+		if err := os.MkdirAll(dir, dirMode); err != nil {
+			return fmt.Errorf("ensuring directories: %w", err)
+		}
+	}
+	return nil
+}
+
+func (p Paths) dirs() []string {
+	return []string{p.Config, p.Data, p.State}
 }
 
 // xdgDir returns $<envVar>/mimir if envVar holds an absolute path.
