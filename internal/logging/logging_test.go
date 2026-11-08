@@ -2,6 +2,8 @@ package logging_test
 
 import (
 	"bytes"
+	"errors"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -12,6 +14,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
+	t.Parallel()
 	t.Run("writes records at or above the level", func(t *testing.T) {
 		t.Parallel()
 		var buf bytes.Buffer
@@ -41,6 +44,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestOpenFile(t *testing.T) {
+	t.Parallel()
 	t.Run("creates mimir.log with mode 0600", func(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
@@ -85,13 +89,16 @@ func TestOpenFile(t *testing.T) {
 			closeFile(t, f)
 			t.Fatalf("OpenFile() error = nil, want an error")
 		}
+		if !errors.Is(err, fs.ErrNotExist) {
+			t.Errorf("OpenFile() error = %v, want it to wrap fs.ErrNotExist", err)
+		}
 	})
 }
 
 // ---helpers---
+
 // writeViaOpenFile opens the log in dir, writes s, and closes it again,
 // like one run of mimir would.
-
 func writeViaOpenFile(t *testing.T, dir, s string) {
 	t.Helper()
 	f, err := logging.OpenFile(dir)
@@ -107,6 +114,6 @@ func writeViaOpenFile(t *testing.T, dir, s string) {
 func closeFile(t *testing.T, f *os.File) {
 	t.Helper()
 	if err := f.Close(); err != nil {
-		t.Errorf("close %v", err)
+		t.Errorf("close: %v", err)
 	}
 }

@@ -230,21 +230,24 @@ config/         TOML load, defaults, validation, XDG paths
 ## 7. Progress & decisions log
 This section is updated as work lands, so any machine or session can pick up where the last one stopped.
 
-### Milestone 0 status
+### Milestone 0 status: done
 - [x] `git init`, `go mod init` (module `github.com/Vishnu-MnM/mimir`, `go 1.27.3`)
 - [x] `config.ResolvePaths` (XDG paths), table-tested
 - [x] Makefile, golangci-lint v2 config, GitHub Actions CI
 - [x] `CLAUDE.md` working agreement added; §7 is the handoff between machines
 - [x] `Paths.EnsureDirs()`: validates every dir with `filepath.IsAbs` before
   creating any, then `os.MkdirAll(dir, 0o700)`; tested with `t.TempDir()`.
-- [ ] **In progress:** slog logging (`internal/logging`).
+- [x] slog logging (`internal/logging`)
   - [x] `logging.New(w io.Writer, level slog.Level) *slog.Logger`: TextHandler,
     level filter tested with a `bytes.Buffer`.
-  - [ ] `logging.OpenFile(dir string) (*os.File, error)`: the red tests are on
-    `main` (`internal/logging/logging_test.go`), so CI is red until this is done.
-    Next step: open `<dir>/mimir.log` with `O_APPEND|O_CREATE|O_WRONLY`, mode
-    `0600`, wrapping errors as `opening log file: %w`.
-- Then Milestone 1 (domain).
+  - [x] `logging.OpenFile(dir string) (*os.File, error)`: opens `<dir>/mimir.log`
+    with `O_APPEND|O_CREATE|O_WRONLY`, mode `0600`; errors wrapped as
+    `opening log file: %w` (tested with `errors.Is(err, fs.ErrNotExist)`).
+- Not wired up yet: the `ResolvePaths` → `EnsureDirs` → `OpenFile` → `New`
+  chain in `cmd/mimir` comes when the binary exists (Milestone 3).
+
+### Milestone 1 status
+- [ ] **Next:** `internal/domain`, starting with the `Task` type (§1.1 fields).
 
 ### Decisions
 **Config paths (`internal/config`)**
@@ -267,6 +270,11 @@ This section is updated as work lands, so any machine or session can pick up whe
   mode `0600`, and fails if the directory is missing. Creating directories is
   `EnsureDirs`' job. Wiring order in `cmd/mimir`: `ResolvePaths` →
   `EnsureDirs` → `OpenFile` → `New`.
+- `OpenFile` returns `*os.File` (accept interfaces, return concrete types): it
+  satisfies `io.Writer` for `New`, and the caller closes it.
+- `O_APPEND` makes the OS write at the current end of the file every time, so
+  two mimir instances can't overwrite each other's lines. The `0600` mode only
+  applies when the file is created; an existing log keeps its mode.
 - Later: a `*slog.LevelVar` so the level can change at runtime (Settings tab).
 
 **Tooling**
@@ -280,3 +288,8 @@ This section is updated as work lands, so any machine or session can pick up whe
 - Format with gofumpt (format-on-save, or `make fmt`); never align code by hand.
 - Use `t.TempDir()` for filesystem tests, and `t.Helper()` in assertion helpers.
 - Name a parameter `_`, or leave it unnamed, when it's unused (revive's `unused-parameter`).
+- Tests write expected values as literals (`"mimir.log"`, `0o600`), not via the
+  package's constants, so a typo in a constant fails the test instead of
+  passing silently.
+- Top-level tests call `t.Parallel()` as well as their subtests; tests share no
+  global state (injected logger, `getenv`, `t.TempDir()`).

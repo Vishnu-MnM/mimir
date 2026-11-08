@@ -8,6 +8,7 @@ import (
 )
 
 func TestResolvePaths(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		env     map[string]string
@@ -69,6 +70,7 @@ func TestResolvePaths(t *testing.T) {
 }
 
 func TestEnsureDirs(t *testing.T) {
+	t.Parallel()
 	t.Run("creates missing directories with mode 0700", func(t *testing.T) {
 		t.Parallel()
 		p := testPaths(t.TempDir())
@@ -104,6 +106,7 @@ func TestEnsureDirs(t *testing.T) {
 }
 
 func TestEnsureDirsErrors(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name  string
 		setup func(t *testing.T) Paths
